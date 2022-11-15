@@ -42,4 +42,5 @@ export class KCP {
     flush(): void;
     peeksize(): number;
     waitsnd(): number;
+    stream(s: number): number;
 }
