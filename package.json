@@ -1,6 +1,6 @@
 {
   "name": "node-kcp-x",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "KCP protocol for Node.js",
   "dependencies": {
     "nan": "^2.14.0"
