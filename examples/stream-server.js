@@ -23,6 +23,7 @@ server.on('message', (msg, rinfo) => {
             port: rinfo.port,
         };
         const kcpObj = new Kcp(255, context);
+        kcpObj.stream(1);
         kcpObj.output(output);
         clients[k] = kcpObj;
         check(kcpObj);
@@ -34,7 +35,7 @@ server.on('message', (msg, rinfo) => {
     const size = kcpObj.peeksize();
     if (size > 0) {
         const buffer = kcpObj.recv();
-        log(`recv: ${buffer} from ${kcpObj.context().address}:${kcpObj.context().port}`);
+        log(`recv from ${kcpObj.context().address}:${kcpObj.context().port}`);
         kcpObj.send(Buffer.from(buffer));
     }
 });

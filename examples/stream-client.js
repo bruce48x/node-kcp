@@ -4,6 +4,7 @@ const dgram = require('dgram');
 const { log } = require('./common');
 
 const kcpObj = new Kcp(255, { address: '127.0.0.1', port: 22333 });
+kcpObj.stream(1);
 const client = dgram.createSocket('udp4');
 
 kcpObj.output((data, size, context) => {
@@ -25,12 +26,15 @@ setInterval(() => {
     const size = kcpObj.peeksize();
     if (size > 0) {
         const buffer = kcpObj.recv();
-        log(`recv: ${buffer}`);
+        log(`recv: ${buffer.length}`);
     }
 }, 100);
 
+let i=0;
 setInterval(() => {
-    const msg = Buffer.from(new Date().toISOString());
-    log(`send: ${msg}`);
-    kcpObj.send(msg);
+    const rand = 200000 + Math.floor(Math.random() * 50000);
+    const buff = Buffer.allocUnsafe(rand).fill(65 + i%26);
+    i++;
+    log(`send: ${buff}`);
+    kcpObj.send(buff.toString('hex'));
 }, 1000);

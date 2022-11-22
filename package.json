@@ -14,7 +14,8 @@
   },
   "scripts": {
     "test": "grunt",
-    "install": "node-gyp rebuild"
+    "install": "node-gyp rebuild",
+    "build:dev": "node-gyp -j 16 build --debug"
   },
   "repository": {
     "type": "git",

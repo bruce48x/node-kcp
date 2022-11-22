@@ -19,7 +19,7 @@
 
 #include <nan.h>
 #include <nan_object_wrap.h>
-#include "kcp/ikcp.h"
+#include "ikcp.h"
 
 namespace node_kcp {
 

@@ -6,7 +6,7 @@
                 "<!(node -e \"require('nan')\")"
             ],
             "sources": [
-                "src/kcp/ikcp.c",
+                "src/ikcp.c",
                 "src/kcpobject.cc",
                 "src/node-kcp.cc"
             ]
