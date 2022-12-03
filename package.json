@@ -3,7 +3,7 @@
   "version": "1.0.3",
   "description": "KCP protocol for Node.js",
   "dependencies": {
-    "nan": "^2.14.0"
+    "node-addon-api": "^5.0.0"
   },
   "devDependencies": {
     "chai": "latest",
