@@ -38,24 +38,18 @@ int KcpObject::kcp_output(const char *buf, int len, ikcpcb *kcp, void *user)
     {
         return len;
     }
-    
-    Napi::Buffer<char> buffer = Napi::Buffer<char>::New(thiz->env, ((char *)buf), len);
-    Napi::String str = Napi::String::New(thiz->env, buf);
+
+    Napi::Buffer<char> buffer = Napi::Buffer<char>::Copy(thiz->env, buf, len);
     Napi::Number length = Napi::Number::New(thiz->env, len);
     std::initializer_list<Napi::Value> args;
     if (thiz->context)
     {
-        std::cout << "context = " << thiz->context << std::endl;
-        // args = {buffer, length, thiz->context};
-        args = {str, length, thiz->context};
+        thiz->output.Call({buffer, length, thiz->context.Value()});
     }
     else
     {
-        std::cout << "no context" << std::endl;
-        // args = {buffer, length};
-        args = {str, length};
+        thiz->output.Call({buffer, length});
     }
-    thiz->output.Call(thiz->env.Global(), args);
     return len;
 }
 
@@ -67,7 +61,7 @@ KcpObject::KcpObject(const Napi::CallbackInfo &info)
     kcp->output = KcpObject::kcp_output;
     if (!info[1].IsEmpty())
     {
-        context = info[1].As<Napi::Object>();
+        context = Napi::Persistent(info[1].As<Napi::Object>());
     }
     recvBuff = (char *)realloc(recvBuff, recvBuffSize);
 }
@@ -102,7 +96,7 @@ void KcpObject::Release(const Napi::CallbackInfo &info)
 
 Napi::Value KcpObject::GetContext(const Napi::CallbackInfo &info)
 {
-    return this->context;
+    return this->context.Value();
 }
 
 Napi::Value KcpObject::Recv(const Napi::CallbackInfo &info)
@@ -234,9 +228,10 @@ Napi::Value KcpObject::Output(const Napi::CallbackInfo &info)
 
     if (!info[0].IsFunction())
     {
-        return Napi::Number::New(env, -1);
+        Napi::Error::New(env, "callback must be a function").ThrowAsJavaScriptException();
+        return env.Undefined();
     }
-    this->output = info[0].As<Napi::Function>();
+    this->output = Napi::Persistent(info[0].As<Napi::Function>());
 
     return env.Undefined();
 }

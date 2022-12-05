@@ -32,8 +32,8 @@ private:
 
     ikcpcb *kcp;
     Napi::Env env;
-    Napi::Function output;
-    Napi::Object context;
+    Napi::FunctionReference output;
+    Napi::ObjectReference context;
     char *recvBuff = NULL;
     unsigned int recvBuffSize = 1024;
 };
