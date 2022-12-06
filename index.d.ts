@@ -34,8 +34,8 @@ export class KCP {
     release(): void;
     context(): ISocket;
     recv(): Buffer;
-    input(pkg: string|Buffer): void;
-    send(pkg: string | Buffer): void;
+    input(pkg: Buffer): void;
+    send(pkg: Buffer): void;
     output(func: (data: any, size: number, opts: any) => void): void;
     update(ts: number): void;
     check(ts: number): number;

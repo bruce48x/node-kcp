@@ -169,32 +169,19 @@ Napi::Value KcpObject::Send(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
 
-    int len = 0;
-    Napi::Value arg0 = info[0];
-    Napi::String str;
-    if (arg0.IsString())
+    if (!info[0].IsBuffer())
     {
-        str = arg0.ToString();
-    }
-    else if (arg0.IsBuffer())
-    {
-        str = arg0.As<Napi::Buffer<char>>().ToString();
-    }
-    else
-    {
-        Napi::Error::New(env, "arg type error").ThrowAsJavaScriptException();
-        return Napi::Number::New(env, -1);
+        Napi::Error::New(env, "Send data type must be buffer").ThrowAsJavaScriptException();
     }
 
-    std::string stdstr = (std::string)str;
-    const char *data = stdstr.data();
-    len = stdstr.length();
-    if (len == 0)
+    Napi::Buffer<char> buff = info[0].As<Napi::Buffer<char>>();
+    int len = buff.ByteLength();
+    if (len < 1)
     {
         Napi::Error::New(env, "Send len error").ThrowAsJavaScriptException();
         return Napi::Number::New(env, -1);
     }
-    int t = ikcp_send(this->kcp, data, len);
+    int t = ikcp_send(this->kcp, buff.Data(), len);
     return Napi::Number::New(env, t);
 }
 

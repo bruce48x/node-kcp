@@ -17,7 +17,7 @@ client.on('error', (err) => {
 });
 
 client.on('message', (msg, rinfo) => {
-    kcpObj.input(msg, true, false);
+    kcpObj.input(msg);
 });
 
 setInterval(() => {

@@ -9,7 +9,7 @@ node-kcp-x
 
 [KCP Protocol](https://github.com/skywind3000/kcp) for Node.js
 
-修改自 [node-kcp](https://github.com/leenjewel/node-kcp)
+修改自 [node-kcp](https://github.com/leenjewel/node-kcp)，使用 [node-addon-api](https://github.com/nodejs/node-addon-api) 重写
 ## HowTo
 
 ### Build:
@@ -43,6 +43,16 @@ node test/udpclient.js
 node examples/server.js
 # 运行客户端
 node examples/client.js
+```
+
+## 运行示例3
+使用 stream 模式
+
+```sh
+# 运行服务端
+node examples/stream-server.js
+# 运行客户端
+node examples/stream-client.js
 ```
 
 ## About Pomelo and Pomelo-kcp

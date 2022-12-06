@@ -30,7 +30,7 @@ server.on('message', (msg, rinfo) => {
     }
 
     const kcpObj = clients[k];
-    kcpObj.input(msg, true, false);
+    kcpObj.input(msg);
 
     const size = kcpObj.peeksize();
     if (size > 0) {

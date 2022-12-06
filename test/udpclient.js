@@ -1,4 +1,4 @@
-var kcp = require('./../build/Release/kcp');
+var kcp = require('./../build/Debug/kcp');
 var kcpobj = new kcp.KCP(123, { address: '127.0.0.1', port: 41234 });
 var dgram = require('dgram');
 var client = dgram.createSocket('udp4');
@@ -32,5 +32,5 @@ setInterval(() => {
 setInterval(() => {
     const msg = new Date().toISOString();
     console.log(`[${new Date().toISOString()}]`, 'send', msg);
-    kcpobj.send(msg);
+    kcpobj.send(Buffer.from(msg));
 }, 1000);

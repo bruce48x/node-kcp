@@ -1,4 +1,4 @@
-var kcp = require('./../build/Release/kcp');
+var kcp = require('./../build/Debug/kcp');
 var dgram = require('dgram');
 var server = dgram.createSocket('udp4');
 var clients = {};
@@ -30,7 +30,6 @@ server.on('message', (data, rinfo) => {
     kcpobj.input(data);
     var recv = kcpobj.recv();
     if (recv) {
-        recv = recv.toString();
         console.log(`Server recv ${recv} from ${kcpobj.context().address}:${kcpobj.context().port}`);
         kcpobj.send(recv);
     }
