@@ -1,10 +1,11 @@
 .DS_Store
 .vscode
-build
-node_modules
-npm-debug.log
 .idea
-package-lock.json
-examples
 .travis.yml
 .gitmodules
+node_modules
+npm-debug.log
+package-lock.json
+examples
+src
+test

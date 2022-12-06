@@ -1,4 +1,4 @@
-const kcp = require('../build/Debug/kcp.node');
+const kcp = require('bindings')('kcp');
 const Kcp = kcp.KCP;
 const dgram = require('dgram');
 const { log, address, port } = require('./common');

@@ -1,4 +1,4 @@
-var kcp = require('./../build/Debug/kcp');
+var kcp = require('bindings')('kcp');
 var expect = require('chai').expect;
 
 var kcpobj1 = new kcp.KCP(123, {name : 'kcpobj1'});
