@@ -14,4 +14,6 @@ function log(...msg) {
 
 module.exports = {
     log,
+    address: '127.0.0.1',
+    port: 22333,
 }

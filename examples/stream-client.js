@@ -1,9 +1,9 @@
 const kcp = require('../build/Debug/kcp.node');
 const Kcp = kcp.KCP;
 const dgram = require('dgram');
-const { log } = require('./common');
+const { log, address, port } = require('./common');
 
-const kcpObj = new Kcp(255, { address: '127.0.0.1', port: 22333 });
+const kcpObj = new Kcp(255, { address, port });
 kcpObj.stream(1);
 const client = dgram.createSocket('udp4');
 

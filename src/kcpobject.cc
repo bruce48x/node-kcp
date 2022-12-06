@@ -41,7 +41,6 @@ int KcpObject::kcp_output(const char *buf, int len, ikcpcb *kcp, void *user)
 
     Napi::Buffer<char> buffer = Napi::Buffer<char>::Copy(thiz->env, buf, len);
     Napi::Number length = Napi::Number::New(thiz->env, len);
-    std::initializer_list<Napi::Value> args;
     if (thiz->context)
     {
         thiz->output.Call({buffer, length, thiz->context.Value()});
@@ -127,7 +126,7 @@ Napi::Value KcpObject::Recv(const Napi::CallbackInfo &info)
             if (!this->recvBuff)
             {
                 len = 0;
-                throw Napi::Error::New(env, "realloc error");
+                Napi::Error::New(env, "realloc error").ThrowAsJavaScriptException();
                 break;
             }
         }
@@ -145,7 +144,7 @@ Napi::Value KcpObject::Recv(const Napi::CallbackInfo &info)
     }
     if (len > 0)
     {
-        return Napi::Buffer<char>::New(env, this->recvBuff, len);
+        return Napi::Buffer<char>::Copy(env, this->recvBuff, len);
     }
 
     return env.Undefined();
@@ -155,35 +154,14 @@ Napi::Value KcpObject::Input(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
 
-    // char *buf = NULL;
-    int len = 0;
-    Napi::Value arg0 = info[0];
-    Napi::String str;
-    if (arg0.IsString())
+    if (!info[0].IsBuffer())
     {
-        str = arg0.ToString();
-    }
-    else if (arg0.IsBuffer())
-    {
-        // Napi::Buffer buff = arg0.As<Napi::Buffer<char>>();
-        // str = buff.ToString();
-        str = arg0.ToString();
-    }
-    else
-    {
-        throw Napi::Error::New(env, "arg type error");
+        Napi::Error::New(env, "input must be buffer").ThrowAsJavaScriptException();
         return Napi::Number::New(env, -1);
     }
 
-    std::string stdstr = (std::string)str;
-    const char *data = stdstr.data();
-    len = stdstr.length();
-    if (len == 0)
-    {
-        throw Napi::Error::New(env, "Input string error");
-    }
-    int t = ikcp_input(this->kcp, data, len);
-    // free(buf);
+    Napi::Buffer<char> buff = info[0].As<Napi::Buffer<char>>();
+    int t = ikcp_input(this->kcp, buff.Data(), buff.ByteLength());
     return Napi::Number::New(env, t);
 }
 
@@ -191,7 +169,6 @@ Napi::Value KcpObject::Send(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
 
-    // char* buff = NULL;
     int len = 0;
     Napi::Value arg0 = info[0];
     Napi::String str;
@@ -205,7 +182,7 @@ Napi::Value KcpObject::Send(const Napi::CallbackInfo &info)
     }
     else
     {
-        throw Napi::Error::New(env, "arg type error");
+        Napi::Error::New(env, "arg type error").ThrowAsJavaScriptException();
         return Napi::Number::New(env, -1);
     }
 
@@ -214,11 +191,10 @@ Napi::Value KcpObject::Send(const Napi::CallbackInfo &info)
     len = stdstr.length();
     if (len == 0)
     {
-        throw Napi::Error::New(env, "Send len error");
+        Napi::Error::New(env, "Send len error").ThrowAsJavaScriptException();
         return Napi::Number::New(env, -1);
     }
     int t = ikcp_send(this->kcp, data, len);
-    // free(buff);
     return Napi::Number::New(env, t);
 }
 
@@ -242,7 +218,7 @@ Napi::Value KcpObject::Update(const Napi::CallbackInfo &info)
 
     if (!info[0].IsNumber())
     {
-        throw Napi::Error::New(env, "KCP update() first argument must be number");
+        Napi::Error::New(env, "KCP update() first argument must be number").ThrowAsJavaScriptException();
         return Napi::Number::New(env, -1);
     }
 
@@ -259,7 +235,7 @@ Napi::Value KcpObject::Check(const Napi::CallbackInfo &info)
 
     if (!info[0].IsNumber())
     {
-        throw Napi::Error::New(env, "KCP check() first argument must be number");
+        Napi::Error::New(env, "KCP check() first argument must be number").ThrowAsJavaScriptException();
         return Napi::Number::New(env, -1);
     }
 
