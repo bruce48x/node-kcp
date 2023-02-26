@@ -1,6 +1,9 @@
 node-kcp-x
 ======================================
 
+This fork fixes compilation on win-32bit using a more recent version of "node-addon-api" dependency.
+Also tested in Electron v22.
+
 [![Build Status][1]][2]
 
 [1]: https://api.travis-ci.org/leenjewel/node-kcp.svg?branch=master
