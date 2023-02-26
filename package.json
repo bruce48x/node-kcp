@@ -3,7 +3,7 @@
   "version": "1.1.2",
   "description": "KCP protocol for Node.js",
   "dependencies": {
-    "node-addon-api": "^5.0.0"
+    "node-addon-api": "^6.0.0"
   },
   "devDependencies": {
     "bindings": "^1.5.0",
