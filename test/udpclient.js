@@ -1,9 +1,9 @@
-var kcp = require('bindings')('kcp');
-var kcpobj = new kcp.KCP(123, { address: '127.0.0.1', port: 41234 });
-var dgram = require('dgram');
-var client = dgram.createSocket('udp4');
-var idx = 1;
-var interval = 100;
+const kcp = require('..');
+const kcpobj = new kcp.KCP(123, { address: '127.0.0.1', port: 41234 });
+const dgram = require('dgram');
+const client = dgram.createSocket('udp4');
+const idx = 1;
+const interval = 100;
 
 kcpobj.stream(1);
 kcpobj.nodelay(0, interval, 0, 0);
@@ -19,7 +19,7 @@ client.on('error', (err) => {
 
 client.on('message', (data, rinfo) => {
     kcpobj.input(data);
-    var recv = kcpobj.recv();
+    const recv = kcpobj.recv();
     if (recv) {
         console.log(`[${new Date().toISOString()}] Client recv: ${recv}`);
     }

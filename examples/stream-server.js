@@ -1,4 +1,4 @@
-const kcp = require('bindings')('kcp');
+const kcp = require('..');
 const Kcp = kcp.KCP;
 const dgram = require('dgram');
 const { log, port } = require('./common');

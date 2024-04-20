@@ -1,10 +1,10 @@
-var kcp = require('bindings')('kcp');
-var dgram = require('dgram');
-var server = dgram.createSocket('udp4');
-var clients = {};
-var interval = 100;
+const kcp = require('..');
+const dgram = require('dgram');
+const server = dgram.createSocket('udp4');
+const clients = {};
+const interval = 100;
 
-var output = function (data, size, context) {
+const output = function (data, size, context) {
     server.send(data, 0, size, context.port, context.address);
 };
 
@@ -14,21 +14,21 @@ server.on('error', (err) => {
 });
 
 server.on('message', (data, rinfo) => {
-    var k = rinfo.address + '_' + rinfo.port;
+    const k = rinfo.address + '_' + rinfo.port;
     if (undefined === clients[k]) {
-        var context = {
+        const context = {
             address: rinfo.address,
             port: rinfo.port
         };
-        var kcpobj = new kcp.KCP(123, context);
+        const kcpobj = new kcp.KCP(123, context);
         kcpobj.stream(1);
         kcpobj.nodelay(0, interval, 0, 0);
         kcpobj.output(output);
         clients[k] = kcpobj;
     }
-    var kcpobj = clients[k];
+    const kcpobj = clients[k];
     kcpobj.input(data);
-    var recv = kcpobj.recv();
+    const recv = kcpobj.recv();
     if (recv) {
         console.log(`Server recv ${recv} from ${kcpobj.context().address}:${kcpobj.context().port}`);
         kcpobj.send(recv);
@@ -36,11 +36,11 @@ server.on('message', (data, rinfo) => {
 });
 
 server.on('listening', () => {
-    var address = server.address();
+    const address = server.address();
     console.log(`server listening ${address.address} : ${address.port}`);
     setInterval(() => {
-        for (var k in clients) {
-            var kcpobj = clients[k];
+        for (const k in clients) {
+            const kcpobj = clients[k];
             kcpobj.update(Date.now());
         }
     }, interval);
