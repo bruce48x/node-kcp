@@ -11,7 +11,7 @@ kcpObj.output((data, size, context) => {
 });
 
 client.on('error', (err) => {
-    log(`cleint error:${err.stack}`);
+    log(`client error:${err.stack}`);
     client.close();
 });
 

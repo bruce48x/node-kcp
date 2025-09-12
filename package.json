@@ -1,6 +1,6 @@
 {
   "name": "node-kcp-x",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "KCP protocol for Node.js",
   "dependencies": {
     "node-addon-api": "^6.1.0",
@@ -17,7 +17,7 @@
   "scripts": {
     "install": "node-gyp-build",
     "test": "grunt",
-    "prebuild": "prebuildify --napi",
+    "build": "prebuildify --napi",
     "build:dev": "node-gyp -j 16 build --debug"
   },
   "repository": {

@@ -12,7 +12,7 @@ kcpObj.output((data, size, context) => {
 });
 
 client.on('error', (err) => {
-    log(`cleint error:${err.stack}`);
+    log(`client error:${err.stack}`);
     client.close();
 });
 
@@ -36,5 +36,5 @@ setInterval(() => {
     const buff = Buffer.allocUnsafe(rand).fill(65 + i%26);
     i++;
     log(`send: ${buff}`);
-    kcpObj.send(buff.toString('hex'));
+    kcpObj.send(buff);
 }, 1000);

@@ -2,6 +2,8 @@
 #include "ikcp.h"
 #include "kcpobject.h"
 
+Napi::FunctionReference KcpObject::constructor;
+
 Napi::Object KcpObject::Init(Napi::Env env, Napi::Object exports)
 {
     Napi::Function func =
@@ -23,9 +25,8 @@ Napi::Object KcpObject::Init(Napi::Env env, Napi::Object exports)
                      InstanceMethod("nodelay", &KcpObject::Nodelay),
                      InstanceMethod("stream", &KcpObject::Stream)});
 
-    Napi::FunctionReference *constructor = new Napi::FunctionReference();
-    *constructor = Napi::Persistent(func);
-    env.SetInstanceData(constructor);
+    constructor = Napi::Persistent(func);
+    constructor.SuppressDestruct();
 
     exports.Set("KCP", func);
     return exports;
@@ -62,7 +63,11 @@ KcpObject::KcpObject(const Napi::CallbackInfo &info)
     {
         context = Napi::Persistent(info[1].As<Napi::Object>());
     }
-    recvBuff = (char *)realloc(recvBuff, recvBuffSize);
+    recvBuff = (char *)malloc(recvBuffSize);
+    if (!recvBuff) {
+        Napi::Error::New(env, "Memory allocation failed").ThrowAsJavaScriptException();
+        return;
+    }
 }
 
 KcpObject::~KcpObject()
@@ -121,14 +126,15 @@ Napi::Value KcpObject::Recv(const Napi::CallbackInfo &info)
             {
                 allsize += 4 - align;
             }
-            this->recvBuffSize = allsize;
-            this->recvBuff = (char *)realloc(this->recvBuff, this->recvBuffSize);
-            if (!this->recvBuff)
+            char* tmp = (char *)realloc(this->recvBuff, allsize);
+            if (!tmp)
             {
                 len = 0;
                 Napi::Error::New(env, "realloc error").ThrowAsJavaScriptException();
                 break;
             }
+            this->recvBuff = tmp;
+            this->recvBuffSize = allsize;
         }
 
         buflen = ikcp_recv(this->kcp, this->recvBuff + len, bufsize);
@@ -172,6 +178,7 @@ Napi::Value KcpObject::Send(const Napi::CallbackInfo &info)
     if (!info[0].IsBuffer())
     {
         Napi::Error::New(env, "Send data type must be buffer").ThrowAsJavaScriptException();
+        return env.Undefined();
     }
 
     Napi::Buffer<char> buff = info[0].As<Napi::Buffer<char>>();
@@ -209,8 +216,7 @@ Napi::Value KcpObject::Update(const Napi::CallbackInfo &info)
         return Napi::Number::New(env, -1);
     }
 
-    int arg0 = info[0].As<Napi::Number>().Int32Value();
-    IUINT32 current = (IUINT32)(arg0 & 0xfffffffful);
+    IUINT32 current = info[0].As<Napi::Number>().Uint32Value();
     ikcp_update(this->kcp, current);
 
     return env.Undefined();
@@ -226,8 +232,7 @@ Napi::Value KcpObject::Check(const Napi::CallbackInfo &info)
         return Napi::Number::New(env, -1);
     }
 
-    int arg0 = info[0].As<Napi::Number>().Int32Value();
-    IUINT32 current = (IUINT32)(arg0 & 0xfffffffful);
+    IUINT32 current = info[0].As<Napi::Number>().Uint32Value();
     IUINT32 ret = ikcp_check(this->kcp, current) - current;
     return Napi::Number::New(env, ret);
 }

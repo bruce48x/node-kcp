@@ -1,11 +1,11 @@
-var kcp = require('bindings')('kcp');
-var expect = require('chai').expect;
+const kcp = require('..');
+const expect = require('chai').expect;
 
-var kcpobj1 = new kcp.KCP(123, {name : 'kcpobj1'});
-var kcpobj2 = new kcp.KCP(123, {name : 'kcpobj2'});
+const kcpobj1 = new kcp.KCP(123, {name : 'kcpobj1'});
+const kcpobj2 = new kcp.KCP(123, {name : 'kcpobj2'});
 
-var interval = 10;
-var msg = 'helloworld';
+const interval = 10;
+const msg = 'helloworld';
 
 describe('Test node-kcp', function(){
 
@@ -18,7 +18,7 @@ describe('Test node-kcp', function(){
 
     describe('# update & check', function(){
         it('test update and check', function(){
-            var now = Date.now();
+            const now = Date.now();
             kcpobj1.update(now);
             expect(kcpobj1.check(now)).to.be.equal(interval);
             kcpobj2.update(now);
@@ -28,7 +28,7 @@ describe('Test node-kcp', function(){
 
     describe('# input & output', function(){
         it('test input and output', function(done){
-            var kcpobj1TID = setTimeout(function(){
+            const kcpobj1TID = setTimeout(function(){
                 kcpobj1.update(Date.now());
             }, interval);
             kcpobj1.output(function(data, size, context){
@@ -37,13 +37,13 @@ describe('Test node-kcp', function(){
                 clearTimeout(kcpobj1TID);
                 done();
             });
-            kcpobj1.send(msg);
+            kcpobj1.send(Buffer.from(msg));
         });
     });
 
     describe('# recveive message', function(){
         it('test receive msg', function(done){
-            var kcpobj2TID = setTimeout(function(){
+            const kcpobj2TID = setTimeout(function(){
                 kcpobj2.update(Date.now());
                 expect(kcpobj2.recv().toString()).to.be.equal(msg);
                 done();
