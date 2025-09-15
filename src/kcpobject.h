@@ -8,7 +8,6 @@
 class KcpObject : public Napi::ObjectWrap<KcpObject>
 {
 public:
-    static Napi::FunctionReference constructor;
     static Napi::Object Init(Napi::Env env, Napi::Object exports);
     explicit KcpObject(const Napi::CallbackInfo &info);
     ~KcpObject();

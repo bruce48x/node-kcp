@@ -2,8 +2,6 @@
 #include "ikcp.h"
 #include "kcpobject.h"
 
-Napi::FunctionReference KcpObject::constructor;
-
 Napi::Object KcpObject::Init(Napi::Env env, Napi::Object exports)
 {
     Napi::Function func =
@@ -25,8 +23,9 @@ Napi::Object KcpObject::Init(Napi::Env env, Napi::Object exports)
                      InstanceMethod("nodelay", &KcpObject::Nodelay),
                      InstanceMethod("stream", &KcpObject::Stream)});
 
-    constructor = Napi::Persistent(func);
-    constructor.SuppressDestruct();
+    Napi::FunctionReference* constructor = new Napi::FunctionReference();
+    *constructor = Napi::Persistent(func);
+    env.SetInstanceData(constructor);
 
     exports.Set("KCP", func);
     return exports;

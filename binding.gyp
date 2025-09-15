@@ -2,7 +2,6 @@
     "targets": [
         {
             "target_name": "kcp",
-            'include_dirs': ["<!(node -p \"require('node-addon-api').include_dir\")"],
             'cflags!': [ '-fno-exceptions' ],
             'cflags_cc!': [ '-fno-exceptions' ],
             'conditions': [
@@ -12,7 +11,8 @@
                 ],
                 "msvs_settings": {
                   "VCCLCompilerTool": {
-                    "ExceptionHandling": 1
+                    "ExceptionHandling": 1,
+                    "AdditionalOptions": ["/utf-8"]
                   },
                 },
               }],
@@ -24,10 +24,28 @@
                 },
               }],
             ],
+            'include_dirs': [
+              "<!(node -p \"require('node-addon-api').include_dir\")",
+              "deps/libcorrect/include"
+            ],
             "sources": [
-                "src/ikcp.c",
-                "src/kcpobject.cc",
-                "src/node-kcp.cc"
+              "src/ikcp.c",
+              "src/kcpobject.cc",
+              "src/node-kcp.cc",
+              "src/rs_wrapper.cc",
+              "deps/libcorrect/src/reed-solomon/encode.c",
+              "deps/libcorrect/src/reed-solomon/decode.c",
+              "deps/libcorrect/src/reed-solomon/polynomial.c",
+              "deps/libcorrect/src/reed-solomon/reed-solomon.c",
+              "deps/libcorrect/src/fec_shim.c",
+              "deps/libcorrect/src/convolutional/bit.c",
+              "deps/libcorrect/src/convolutional/convolutional.c",
+              "deps/libcorrect/src/convolutional/decode.c",
+              "deps/libcorrect/src/convolutional/encode.c",
+              "deps/libcorrect/src/convolutional/error_buffer.c",
+              "deps/libcorrect/src/convolutional/history_buffer.c",
+              "deps/libcorrect/src/convolutional/lookup.c",
+              "deps/libcorrect/src/convolutional/metric.c"
             ]
         }
     ]
