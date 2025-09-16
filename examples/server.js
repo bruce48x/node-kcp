@@ -1,7 +1,7 @@
 const kcp = require('..');
 const Kcp = kcp.KCP;
 const dgram = require('dgram');
-const { log, port } = require('./common');
+const { log, port, conv } = require('./common');
 
 const server = dgram.createSocket('udp4');
 const clients = {};
@@ -22,7 +22,7 @@ server.on('message', (msg, rinfo) => {
             address: rinfo.address,
             port: rinfo.port,
         };
-        const kcpObj = new Kcp(255, context);
+        const kcpObj = new Kcp(conv, context);
         kcpObj.output(output);
         clients[k] = kcpObj;
         check(kcpObj);

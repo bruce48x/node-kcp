@@ -1,9 +1,9 @@
 const kcp = require('..');
 const Kcp = kcp.KCP;
 const dgram = require('dgram');
-const { log, address, port } = require('./common');
+const { log, address, port, conv } = require('./common');
 
-const kcpObj = new Kcp(255, { address, port });
+const kcpObj = new Kcp(conv, { address, port });
 const client = dgram.createSocket('udp4');
 
 kcpObj.output((data, size, context) => {
