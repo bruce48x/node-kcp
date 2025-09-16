@@ -26,7 +26,7 @@ setInterval(() => {
     const size = kcpObj.peeksize();
     if (size > 0) {
         const buffer = kcpObj.recv();
-        log(`recv: ${buffer.length}`);
+        log(`recv data length: ${buffer.byteLength}`);
     }
 }, 100);
 
@@ -35,6 +35,6 @@ setInterval(() => {
     const rand = 200000 + Math.floor(Math.random() * 50000);
     const buff = Buffer.allocUnsafe(rand).fill(65 + i%26);
     i++;
-    log(`send: ${buff}`);
+    log(`send data length: ${buff.byteLength}`);
     kcpObj.send(buff);
 }, 1000);

@@ -1,5 +1,3 @@
-// export * from './build/Release/kcp';
-
 declare interface ISocket {
     once(evt: 'disconnect', listener: () => void): void;
     once(evt: 'error', listener: () => void): void;
@@ -26,8 +24,17 @@ declare interface ISocket {
     remoteAddress ?: {ip: string , port ?: number};
 }
 
+export interface KcpOptions {
+    address?: string;
+    port?: number;
+    fec?: {
+        dataShards?: number;
+        parityShards?: number;
+    };
+}
+
 export class KCP {
-    constructor(conv: number, user: any) 
+    constructor(conv: number, user: KcpOptions) 
     wndsize(sndwnd: number, rcvwnd: number): void;
     setmtu(mtu: number): void;
     nodelay(nodelay: number, interval: number, resend: number, nc: number): void;
@@ -36,7 +43,7 @@ export class KCP {
     recv(): Buffer;
     input(pkg: Buffer): void;
     send(pkg: Buffer): void;
-    output(func: (data: any, size: number, opts: any) => void): void;
+    output(func: (data: any, size: number, opts: KcpOptions) => void): void;
     update(ts: number): void;
     check(ts: number): number;
     flush(): void;

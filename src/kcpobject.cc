@@ -1,6 +1,7 @@
 #include <iostream>
 #include "ikcp.h"
 #include "kcpobject.h"
+#include "encoding.h"
 
 Napi::Object KcpObject::Init(Napi::Env env, Napi::Object exports)
 {
@@ -23,7 +24,7 @@ Napi::Object KcpObject::Init(Napi::Env env, Napi::Object exports)
                      InstanceMethod("nodelay", &KcpObject::Nodelay),
                      InstanceMethod("stream", &KcpObject::Stream)});
 
-    Napi::FunctionReference* constructor = new Napi::FunctionReference();
+    Napi::FunctionReference *constructor = new Napi::FunctionReference();
     *constructor = Napi::Persistent(func);
     env.SetInstanceData(constructor);
 
@@ -39,6 +40,50 @@ int KcpObject::kcp_output(const char *buf, int len, ikcpcb *kcp, void *user)
         return len;
     }
 
+    FEC fec = thiz->fec;
+    if (fec.isEnabled())
+    {
+        // extend to len + fecHeaderSizePlus2
+        // i.e. 4B seqid + 2B flag + 2B size
+        memcpy(thiz->outBuff + fecHeaderSizePlus2, buf, static_cast<size_t>(len));
+        fec.MarkData(reinterpret_cast<byte *>(thiz->outBuff), static_cast<uint16_t>(len));
+        thiz->output_wrapper(thiz, thiz->outBuff, len + fecHeaderSizePlus2);
+
+        // FEC calculation
+        // copy "2B size + data" to shards
+        auto slen = len + 2;
+        thiz->shards[thiz->pkt_idx] =
+            std::make_shared<std::vector<byte>>(&thiz->outBuff[fecHeaderSize], &thiz->outBuff[fecHeaderSize + slen]);
+
+        // count number of data shards
+        thiz->pkt_idx++;
+        if (thiz->pkt_idx == thiz->dataShards)
+        { // we've collected enough data shards
+            fec.Encode(thiz->shards);
+            // send parity shards
+            for (size_t i = thiz->dataShards; i < thiz->dataShards + thiz->parityShards; i++)
+            {
+                // append header to parity shards
+                // i.e. fecHeaderSize + data(2B size included)
+                memcpy(thiz->outBuff + fecHeaderSize, thiz->shards[i]->data(), thiz->shards[i]->size());
+                fec.MarkFEC(reinterpret_cast<byte *>(thiz->outBuff));
+                thiz->output_wrapper(thiz, thiz->outBuff, thiz->shards[i]->size() + fecHeaderSize);
+            }
+
+            // reset indexing
+            thiz->pkt_idx = 0;
+        }
+    }
+    else
+    {
+        thiz->output_wrapper(thiz, buf, len);
+    }
+
+    return len;
+}
+
+void KcpObject::output_wrapper(KcpObject *thiz, const char *buf, int len)
+{
     Napi::Buffer<char> buffer = Napi::Buffer<char>::Copy(thiz->env, buf, len);
     Napi::Number length = Napi::Number::New(thiz->env, len);
     if (thiz->context)
@@ -49,7 +94,6 @@ int KcpObject::kcp_output(const char *buf, int len, ikcpcb *kcp, void *user)
     {
         thiz->output.Call({buffer, length});
     }
-    return len;
 }
 
 KcpObject::KcpObject(const Napi::CallbackInfo &info)
@@ -63,7 +107,8 @@ KcpObject::KcpObject(const Napi::CallbackInfo &info)
         context = Napi::Persistent(info[1].As<Napi::Object>());
     }
     recvBuff = (char *)malloc(recvBuffSize);
-    if (!recvBuff) {
+    if (!recvBuff)
+    {
         Napi::Error::New(env, "Memory allocation failed").ThrowAsJavaScriptException();
         return;
     }
@@ -72,13 +117,21 @@ KcpObject::KcpObject(const Napi::CallbackInfo &info)
     if (context.Value().Has("fec"))
     {
         Napi::Object fecOpts = context.Value().Get("fec").As<Napi::Object>();
-        auto dataShards = fecOpts.Get("dataShards").As<Napi::Number>().Int32Value();
-        auto parityShards = fecOpts.Get("parityShards").As<Napi::Number>().Int32Value();
+        dataShards = fecOpts.Get("dataShards").As<Napi::Number>().Uint32Value();
+        parityShards = fecOpts.Get("parityShards").As<Napi::Number>().Uint32Value();
         fec = FEC::New(3 * (dataShards + parityShards), dataShards, parityShards);
+        shards.resize(dataShards + parityShards, nullptr);
+
+        outBuff = (char *)malloc((dataShards + parityShards) * 1024);
+        if (!outBuff)
+        {
+            Napi::Error::New(env, "Memory allocation failed").ThrowAsJavaScriptException();
+            return;
+        }
     }
 }
 
-KcpObject::~KcpObject()
+void KcpObject::release()
 {
     if (kcp)
     {
@@ -90,20 +143,21 @@ KcpObject::~KcpObject()
         free(recvBuff);
         recvBuff = NULL;
     }
+    if (outBuff)
+    {
+        free(outBuff);
+        outBuff = NULL;
+    }
+}
+
+KcpObject::~KcpObject()
+{
+    release();
 }
 
 void KcpObject::Release(const Napi::CallbackInfo &info)
 {
-    if (this->kcp)
-    {
-        ikcp_release(this->kcp);
-        this->kcp = NULL;
-    }
-    if (this->recvBuff)
-    {
-        free(this->recvBuff);
-        this->recvBuff = NULL;
-    }
+    release();
 }
 
 Napi::Value KcpObject::GetContext(const Napi::CallbackInfo &info)
@@ -134,7 +188,7 @@ Napi::Value KcpObject::Recv(const Napi::CallbackInfo &info)
             {
                 allsize += 4 - align;
             }
-            char* tmp = (char *)realloc(this->recvBuff, allsize);
+            char *tmp = (char *)realloc(this->recvBuff, allsize);
             if (!tmp)
             {
                 len = 0;
@@ -175,8 +229,54 @@ Napi::Value KcpObject::Input(const Napi::CallbackInfo &info)
     }
 
     Napi::Buffer<char> buff = info[0].As<Napi::Buffer<char>>();
-    int t = ikcp_input(this->kcp, buff.Data(), buff.ByteLength());
-    return Napi::Number::New(env, t);
+    if (fec.isEnabled())
+    {
+        // decode FEC packet
+        auto pkt = fec.Decode(reinterpret_cast<byte *>(buff.Data()), buff.ByteLength());
+        if (pkt.flag == typeData)
+        {
+            auto ptr = pkt.data->data();
+            // we have 2B size, ignore for typeData
+            int t = ikcp_input(this->kcp, (char *)(ptr + 2), pkt.data->size() - 2);
+            return Napi::Number::New(env, t);
+        }
+
+        // allow FEC packet processing with correct flags.
+        if (pkt.flag == typeData || pkt.flag == typeFEC)
+        {
+            // input to FEC, and see if we can recover data.
+            auto recovered = fec.Input(pkt);
+
+            // we have some data recovered.
+            int t = 0;
+            for (auto &r : recovered)
+            {
+                // recovered data has at least 2B size.
+                if (r->size() > 2)
+                {
+                    auto ptr = r->data();
+                    // decode packet size, which is also recovered.
+                    uint16_t sz;
+                    decode16u(ptr, &sz);
+
+                    // the recovered packet size must be in the correct range.
+                    if (sz >= 2 && sz <= r->size())
+                    {
+                        // input proper data to kcp
+                        t += ikcp_input(this->kcp, (char *)(ptr + 2), sz - 2);
+                        // std::cout << "sz:" << sz << std::endl;
+                    }
+                }
+            }
+            return Napi::Number::New(env, t);
+        }
+        return Napi::Number::New(env, -1);
+    }
+    else
+    {
+        int t = ikcp_input(this->kcp, buff.Data(), buff.ByteLength());
+        return Napi::Number::New(env, t);
+    }
 }
 
 Napi::Value KcpObject::Send(const Napi::CallbackInfo &info)

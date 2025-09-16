@@ -31,6 +31,7 @@ private:
     Napi::Value Stream(const Napi::CallbackInfo &info);
 
     static int kcp_output(const char *buf, int len, ikcpcb *kcp, void *user);
+    void release();
 
     ikcpcb *kcp;
     Napi::Env env;
@@ -38,7 +39,15 @@ private:
     Napi::ObjectReference context;
     char *recvBuff = NULL;
     unsigned int recvBuffSize = 1024;
+    char *outBuff = NULL;
+
+    void output_wrapper(KcpObject *thiz, const char *buf, int len);
+
     FEC fec;
+    uint32_t pkt_idx{0};
+    std::vector<row_type> shards;
+    size_t dataShards{0};
+    size_t parityShards{0};
 };
 
 #endif
