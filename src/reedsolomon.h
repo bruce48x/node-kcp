@@ -46,15 +46,15 @@ public:
     void Reconstruct(std::vector<row_type> &shards);
 
 private:
-    int m_dataShards;   // Number of data shards, should not be modified.
-    int m_parityShards; // Number of parity shards, should not be modified.
-    int m_totalShards;  // Total number of shards. Calculated, and should not be modified.
+    size_t m_dataShards;   // Number of data shards, should not be modified.
+    size_t m_parityShards; // Number of parity shards, should not be modified.
+    size_t m_totalShards;  // Total number of shards. Calculated, and should not be modified.
 
     matrix m;
     inversionTree tree;
     std::vector<row_type> parity;
 
-    int shardSize(std::vector<row_type> &shards);
+    size_t shardSize(std::vector<row_type> &shards);
 
     // Multiplies a subset of rows from a coding matrix by a full set of
     // Input shards to produce some output shards.

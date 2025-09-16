@@ -20,7 +20,7 @@ byte galMultiply(byte a, byte b)
     return mulTable[a][b];
 }
 
-byte galDivide(byte a, byte b)
+byte galDivide(byte a, byte b) noexcept(false)
 {
     if (a == 0)
     {

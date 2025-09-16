@@ -78,7 +78,7 @@ void ReedSolomon::Encode(std::vector<row_type> &shards)
 void ReedSolomon::codeSomeShards(std::vector<row_type> &matrixRows, std::vector<row_type> &inputs,
                                  std::vector<row_type> &outputs, int outputCount)
 {
-    for (int c = 0; c < m_dataShards; c++)
+    for (size_t c = 0; c < m_dataShards; c++)
     {
         auto in = inputs[c];
         for (int iRow = 0; iRow < outputCount; iRow++)
@@ -109,8 +109,8 @@ void ReedSolomon::Reconstruct(std::vector<row_type> &shards)
 
     // Quick check: are all of the shards present?  If so, there's
     // nothing to do.
-    int numberPresent = 0;
-    for (int i = 0; i < m_totalShards; i++)
+    size_t numberPresent = 0;
+    for (size_t i = 0; i < m_totalShards; i++)
     {
         if (shards[i] != nullptr)
         {
@@ -141,9 +141,9 @@ void ReedSolomon::Reconstruct(std::vector<row_type> &shards)
     std::vector<row_type> subShards(m_dataShards);
     std::vector<int> validIndices(m_dataShards, 0);
     std::vector<int> invalidIndices;
-    int subMatrixRow = 0;
+    size_t subMatrixRow = 0;
 
-    for (int matrixRow = 0; matrixRow < m_totalShards && subMatrixRow < m_dataShards; matrixRow++)
+    for (size_t matrixRow = 0; matrixRow < m_totalShards && subMatrixRow < m_dataShards; matrixRow++)
     {
         if (shards[matrixRow] != nullptr)
         {
@@ -173,7 +173,7 @@ void ReedSolomon::Reconstruct(std::vector<row_type> &shards)
         auto subMatrix = matrix::newMatrix(m_dataShards, m_dataShards);
         for (subMatrixRow = 0; subMatrixRow < validIndices.size(); subMatrixRow++)
         {
-            for (int c = 0; c < m_dataShards; c++)
+            for (size_t c = 0; c < m_dataShards; c++)
             {
                 subMatrix.at(subMatrixRow, c) = m.at(validIndices[subMatrixRow], c);
             };
@@ -208,7 +208,7 @@ void ReedSolomon::Reconstruct(std::vector<row_type> &shards)
     std::vector<row_type> matrixRows(m_parityShards);
     int outputCount = 0;
 
-    for (int iShard = 0; iShard < m_dataShards; iShard++)
+    for (size_t iShard = 0; iShard < m_dataShards; iShard++)
     {
         if (shards[iShard] == nullptr)
         {
@@ -227,7 +227,7 @@ void ReedSolomon::Reconstruct(std::vector<row_type> &shards)
     // any that we just calculated.  The output is whichever of the
     // data shards were missing.
     outputCount = 0;
-    for (int iShard = m_dataShards; iShard < m_totalShards; iShard++)
+    for (size_t iShard = m_dataShards; iShard < m_totalShards; iShard++)
     {
         if (shards[iShard] == nullptr)
         {
@@ -248,7 +248,7 @@ void ReedSolomon::checkShards(std::vector<row_type> &shards, bool nilok)
         throw std::invalid_argument("no shard data");
     }
 
-    for (int i = 0; i < shards.size(); i++)
+    for (size_t i = 0; i < shards.size(); i++)
     {
         if (shards[i] == nullptr)
         {
@@ -264,9 +264,9 @@ void ReedSolomon::checkShards(std::vector<row_type> &shards, bool nilok)
     }
 }
 
-int ReedSolomon::shardSize(std::vector<row_type> &shards)
+size_t ReedSolomon::shardSize(std::vector<row_type> &shards)
 {
-    for (int i = 0; i < shards.size(); i++)
+    for (size_t i = 0; i < shards.size(); i++)
     {
         if (shards[i] != nullptr)
         {

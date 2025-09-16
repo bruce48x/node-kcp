@@ -7,7 +7,7 @@
 
 void galMulSlice(byte c, row_type in, row_type out)
 {
-    for (int n = 0; n < in->size(); n++)
+    for (size_t n = 0; n < in->size(); n++)
     {
         (*out)[n] = mulTable[c][(*in)[n]];
     }
@@ -15,7 +15,7 @@ void galMulSlice(byte c, row_type in, row_type out)
 
 void galMulSliceXor(byte c, row_type in, row_type out)
 {
-    for (int n = 0; n < in->size(); n++)
+    for (size_t n = 0; n < in->size(); n++)
     {
         (*out)[n] ^= mulTable[c][(*in)[n]];
     }

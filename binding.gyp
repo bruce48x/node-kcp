@@ -34,7 +34,7 @@
               "src/reedsolomon.cpp",
               "src/matrix.cpp",
               "src/galois.cpp",
-              "src/galois_table.c",
+              "src/galois_table.cpp",
               "src/galois_noasm.cpp",
               "src/fec.cpp",
               "src/inversion_tree.cpp",

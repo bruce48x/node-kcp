@@ -507,7 +507,7 @@ int ikcp_send(ikcpcb *kcp, const char *buffer, int len)
 
 	// 此处修改原版的代码，stream 模式下没有拆分包数量的限制
 	if (kcp->stream == 0) {
-		if (count >= IKCP_WND_RCV) return -2;
+		if (count >= (int)IKCP_WND_RCV) return -2;
 	}
 
 	if (count == 0) count = 1;

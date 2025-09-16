@@ -1,8 +1,9 @@
+#include <stdint.h>
+
 #ifdef _WIN32
 
 #include <windows.h>
 #include <basetsd.h>
-#include <stdint.h>
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,16 +34,17 @@ int gettimeofday(struct timeval *tp, struct timezone *tzp)
     return 0;
 }
 
+#else
+
+#include <sys/time.h>
+#include <err.h>
+#include <cstddef>
+
+#endif
+
 inline uint32_t currentMs()
 {
     struct timeval time;
     gettimeofday(&time, NULL);
     return uint32_t((time.tv_sec * 1000) + (time.tv_usec / 1000));
 }
-
-#else
-
-#include <sys/time.h>
-#include <err.h>
-
-#endif

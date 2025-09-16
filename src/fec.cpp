@@ -25,7 +25,7 @@
 
 FEC::FEC(ReedSolomon enc) : enc(enc) {}
 
-FEC FEC::New(int rxlimit, int dataShards, int parityShards)
+FEC FEC::New(size_t rxlimit, size_t dataShards, size_t parityShards)
 {
     if (dataShards <= 0 || parityShards <= 0)
     {
@@ -104,7 +104,7 @@ FEC::Input(fecPacket &pkt)
     // insertion
     auto n = this->rx.size() - 1;
     int insertIdx = 0;
-    for (int i = n; i >= 0; i--)
+    for (int i = (int)n; i >= 0; i--)
     {
         if (pkt.seqid == rx[i].seqid)
         {
@@ -124,29 +124,29 @@ FEC::Input(fecPacket &pkt)
     auto shardEnd = shardBegin + totalShards - 1;
 
     // max search range in ordered queue for current shard
-    auto searchBegin = insertIdx - int(pkt.seqid % totalShards);
+    int searchBegin = insertIdx - int(pkt.seqid % totalShards);
     if (searchBegin < 0)
     {
         searchBegin = 0;
     }
 
-    auto searchEnd = searchBegin + totalShards - 1;
+    size_t searchEnd = searchBegin + totalShards - 1;
     if (searchEnd >= rx.size())
     {
         searchEnd = rx.size() - 1;
     }
 
-    if (searchEnd > searchBegin && searchEnd - searchBegin + 1 >= dataShards)
+    if (searchEnd > (size_t)searchBegin && searchEnd - searchBegin + 1 >= dataShards)
     {
-        int numshard = 0;
-        int numDataShard = 0;
+        size_t numshard = 0;
+        size_t numDataShard = 0;
         int first = 0;
         size_t maxlen = 0;
 
         std::vector<row_type> shardVec(totalShards);
         std::vector<bool> shardflag(totalShards, false);
 
-        for (auto i = searchBegin; i <= searchEnd; i++)
+        for (size_t i = searchBegin; i <= searchEnd; i++)
         {
             auto seqid = rx[i].seqid;
             if (seqid > shardEnd)
@@ -180,7 +180,7 @@ FEC::Input(fecPacket &pkt)
         else if (numshard >= dataShards)
         { // recoverable
             // equally resized
-            for (int i = 0; i < shardVec.size(); i++)
+            for (size_t i = 0; i < shardVec.size(); i++)
             {
                 if (shardVec[i] != nullptr)
                 {
@@ -190,7 +190,7 @@ FEC::Input(fecPacket &pkt)
 
             // reconstruct shards
             enc.Reconstruct(shardVec);
-            for (int k = 0; k < dataShards; k++)
+            for (size_t k = 0; k < dataShards; k++)
             {
                 if (!shardflag[k])
                 {
@@ -214,7 +214,7 @@ void FEC::Encode(std::vector<row_type> &shards)
 {
     // resize elements with 0 appending
     size_t max = 0;
-    for (int i = 0; i < dataShards; i++)
+    for (size_t i = 0; i < dataShards; i++)
     {
         if (shards[i]->size() > max)
         {

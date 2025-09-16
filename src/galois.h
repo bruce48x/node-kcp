@@ -7,10 +7,6 @@
 
 typedef unsigned char byte;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 byte galAdd(byte a, byte b);
 
 byte galSub(byte a, byte b);
@@ -20,7 +16,7 @@ byte galSub(byte a, byte b);
 byte galMultiply(byte a, byte b);
 
 // galDivide is inverse of galMultiply.
-byte galDivide(byte a, byte b);
+byte galDivide(byte a, byte b) noexcept(false);
 
 // Computes a**n.
 //
@@ -31,9 +27,5 @@ byte galExp(byte a, byte b);
 extern byte mulTable[256][256];
 extern byte logTable[];
 extern byte expTable[];
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // KCP_GALOIS_H
