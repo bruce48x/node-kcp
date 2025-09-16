@@ -3,6 +3,8 @@
 
 #define NAPI_VERSION 8
 #include <napi.h>
+#include <memory>
+#include <vector>
 #include "ikcp.h"
 #include "fec.h"
 
@@ -31,15 +33,19 @@ private:
     Napi::Value Stream(const Napi::CallbackInfo &info);
 
     static int kcp_output(const char *buf, int len, ikcpcb *kcp, void *user);
-    void release();
 
-    ikcpcb *kcp;
+    // RAII-managed resources
+    std::unique_ptr<ikcpcb, void (*)(ikcpcb *)> kcp;
     Napi::Env env;
     Napi::FunctionReference output;
     Napi::ObjectReference context;
-    char *recvBuff = NULL;
+
+    // RAII-managed buffers using std::vector
+    std::vector<char> recvBuffer;
+    std::vector<char> outBuffer;
+
+    // Buffer size tracking
     unsigned int recvBuffSize = 1024;
-    char *outBuff = NULL;
 
     void output_wrapper(KcpObject *thiz, const char *buf, int len);
 

@@ -45,15 +45,15 @@ int KcpObject::kcp_output(const char *buf, int len, ikcpcb *kcp, void *user)
     {
         // extend to len + fecHeaderSizePlus2
         // i.e. 4B seqid + 2B flag + 2B size
-        memcpy(thiz->outBuff + fecHeaderSizePlus2, buf, static_cast<size_t>(len));
-        fec.MarkData(reinterpret_cast<byte *>(thiz->outBuff), static_cast<uint16_t>(len));
-        thiz->output_wrapper(thiz, thiz->outBuff, len + fecHeaderSizePlus2);
+        memcpy(thiz->outBuffer.data() + fecHeaderSizePlus2, buf, static_cast<size_t>(len));
+        fec.MarkData(reinterpret_cast<byte *>(thiz->outBuffer.data()), static_cast<uint16_t>(len));
+        thiz->output_wrapper(thiz, thiz->outBuffer.data(), len + fecHeaderSizePlus2);
 
         // FEC calculation
         // copy "2B size + data" to shards
         auto slen = len + 2;
         thiz->shards[thiz->pkt_idx] =
-            std::make_shared<std::vector<byte>>(&thiz->outBuff[fecHeaderSize], &thiz->outBuff[fecHeaderSize + slen]);
+            std::make_shared<std::vector<byte>>(&thiz->outBuffer[fecHeaderSize], &thiz->outBuffer[fecHeaderSize + slen]);
 
         // count number of data shards
         thiz->pkt_idx++;
@@ -65,9 +65,9 @@ int KcpObject::kcp_output(const char *buf, int len, ikcpcb *kcp, void *user)
             {
                 // append header to parity shards
                 // i.e. fecHeaderSize + data(2B size included)
-                memcpy(thiz->outBuff + fecHeaderSize, thiz->shards[i]->data(), thiz->shards[i]->size());
-                fec.MarkFEC(reinterpret_cast<byte *>(thiz->outBuff));
-                thiz->output_wrapper(thiz, thiz->outBuff, thiz->shards[i]->size() + fecHeaderSize);
+                memcpy(thiz->outBuffer.data() + fecHeaderSize, thiz->shards[i]->data(), thiz->shards[i]->size());
+                fec.MarkFEC(reinterpret_cast<byte *>(thiz->outBuffer.data()));
+                thiz->output_wrapper(thiz, thiz->outBuffer.data(), thiz->shards[i]->size() + fecHeaderSize);
             }
 
             // reset indexing
@@ -97,67 +97,67 @@ void KcpObject::output_wrapper(KcpObject *thiz, const char *buf, int len)
 }
 
 KcpObject::KcpObject(const Napi::CallbackInfo &info)
-    : Napi::ObjectWrap<KcpObject>(info), env(info.Env())
+    : Napi::ObjectWrap<KcpObject>(info),
+      env(info.Env()),
+      kcp(nullptr, ikcp_release) // RAII: custom deleter for ikcpcb
 {
-    IUINT32 conv = info[0].As<Napi::Number>().Uint32Value();
-    kcp = ikcp_create(conv, this);
-    kcp->output = KcpObject::kcp_output;
-    if (!info[1].IsEmpty())
+    try
     {
-        context = Napi::Persistent(info[1].As<Napi::Object>());
-    }
-    recvBuff = (char *)malloc(recvBuffSize);
-    if (!recvBuff)
-    {
-        Napi::Error::New(env, "Memory allocation failed").ThrowAsJavaScriptException();
-        return;
-    }
+        IUINT32 conv = info[0].As<Napi::Number>().Uint32Value();
 
-    // 判断是否有FEC参数
-    if (context.Value().Has("fec"))
-    {
-        Napi::Object fecOpts = context.Value().Get("fec").As<Napi::Object>();
-        dataShards = fecOpts.Get("dataShards").As<Napi::Number>().Uint32Value();
-        parityShards = fecOpts.Get("parityShards").As<Napi::Number>().Uint32Value();
-        fec = FEC::New(3 * (dataShards + parityShards), dataShards, parityShards);
-        shards.resize(dataShards + parityShards, nullptr);
-
-        outBuff = (char *)malloc((dataShards + parityShards) * 1024);
-        if (!outBuff)
+        // Create KCP with RAII management
+        ikcpcb *raw_kcp = ikcp_create(conv, this);
+        if (!raw_kcp)
         {
-            Napi::Error::New(env, "Memory allocation failed").ThrowAsJavaScriptException();
-            return;
+            throw std::runtime_error("Failed to create KCP instance");
+        }
+        kcp.reset(raw_kcp);
+        kcp->output = KcpObject::kcp_output;
+
+        if (!info[1].IsEmpty())
+        {
+            context = Napi::Persistent(info[1].As<Napi::Object>());
+        }
+
+        // Initialize receive buffer with RAII
+        recvBuffer.resize(recvBuffSize);
+
+        // 判断是否有FEC参数
+        if (!context.IsEmpty() && context.Value().Has("fec"))
+        {
+            Napi::Object fecOpts = context.Value().Get("fec").As<Napi::Object>();
+            dataShards = fecOpts.Get("dataShards").As<Napi::Number>().Uint32Value();
+            parityShards = fecOpts.Get("parityShards").As<Napi::Number>().Uint32Value();
+            fec = FEC::New(3 * (dataShards + parityShards), dataShards, parityShards);
+            shards.resize(dataShards + parityShards, nullptr);
+
+            // Initialize output buffer with RAII
+            outBuffer.resize((dataShards + parityShards) * 1024);
         }
     }
-}
-
-void KcpObject::release()
-{
-    if (kcp)
+    catch (const std::exception &e)
     {
-        ikcp_release(kcp);
-        kcp = NULL;
-    }
-    if (recvBuff)
-    {
-        free(recvBuff);
-        recvBuff = NULL;
-    }
-    if (outBuff)
-    {
-        free(outBuff);
-        outBuff = NULL;
+        Napi::Error::New(env, std::string("KCP initialization failed: ") + e.what())
+            .ThrowAsJavaScriptException();
+        throw;
     }
 }
 
 KcpObject::~KcpObject()
 {
-    release();
+    // RAII handles all cleanup automatically
+    // No need to call release() explicitly
 }
 
 void KcpObject::Release(const Napi::CallbackInfo &info)
 {
-    release();
+    // RAII handles cleanup automatically
+    // Just reset the unique_ptr to trigger cleanup
+    kcp.reset();
+
+    // Clear buffers (vectors will automatically clean up)
+    recvBuffer.clear();
+    outBuffer.clear();
 }
 
 Napi::Value KcpObject::GetContext(const Napi::CallbackInfo &info)
@@ -175,7 +175,7 @@ Napi::Value KcpObject::Recv(const Napi::CallbackInfo &info)
     unsigned int len = 0;
     while (1)
     {
-        bufsize = ikcp_peeksize(this->kcp);
+        bufsize = ikcp_peeksize(this->kcp.get());
         if (bufsize <= 0)
         {
             break;
@@ -188,18 +188,21 @@ Napi::Value KcpObject::Recv(const Napi::CallbackInfo &info)
             {
                 allsize += 4 - align;
             }
-            char *tmp = (char *)realloc(this->recvBuff, allsize);
-            if (!tmp)
+            // RAII: resize vector instead of realloc
+            try
+            {
+                this->recvBuffer.resize(allsize);
+                this->recvBuffSize = allsize;
+            }
+            catch (const std::bad_alloc &e)
             {
                 len = 0;
-                Napi::Error::New(env, "realloc error").ThrowAsJavaScriptException();
+                Napi::Error::New(env, "Buffer resize failed: out of memory").ThrowAsJavaScriptException();
                 break;
             }
-            this->recvBuff = tmp;
-            this->recvBuffSize = allsize;
         }
 
-        buflen = ikcp_recv(this->kcp, this->recvBuff + len, bufsize);
+        buflen = ikcp_recv(this->kcp.get(), this->recvBuffer.data() + len, bufsize);
         if (buflen <= 0)
         {
             break;
@@ -212,7 +215,7 @@ Napi::Value KcpObject::Recv(const Napi::CallbackInfo &info)
     }
     if (len > 0)
     {
-        return Napi::Buffer<char>::Copy(env, this->recvBuff, len);
+        return Napi::Buffer<char>::Copy(env, this->recvBuffer.data(), len);
     }
 
     return env.Undefined();
@@ -237,7 +240,7 @@ Napi::Value KcpObject::Input(const Napi::CallbackInfo &info)
         {
             auto ptr = pkt.data->data();
             // we have 2B size, ignore for typeData
-            int t = ikcp_input(this->kcp, (char *)(ptr + 2), pkt.data->size() - 2);
+            int t = ikcp_input(this->kcp.get(), (char *)(ptr + 2), pkt.data->size() - 2);
             return Napi::Number::New(env, t);
         }
 
@@ -263,7 +266,7 @@ Napi::Value KcpObject::Input(const Napi::CallbackInfo &info)
                     if (sz >= 2 && sz <= r->size())
                     {
                         // input proper data to kcp
-                        t += ikcp_input(this->kcp, (char *)(ptr + 2), sz - 2);
+                        t += ikcp_input(this->kcp.get(), (char *)(ptr + 2), sz - 2);
                         // std::cout << "sz:" << sz << std::endl;
                     }
                 }
@@ -274,7 +277,7 @@ Napi::Value KcpObject::Input(const Napi::CallbackInfo &info)
     }
     else
     {
-        int t = ikcp_input(this->kcp, buff.Data(), buff.ByteLength());
+        int t = ikcp_input(this->kcp.get(), buff.Data(), buff.ByteLength());
         return Napi::Number::New(env, t);
     }
 }
@@ -296,7 +299,7 @@ Napi::Value KcpObject::Send(const Napi::CallbackInfo &info)
         Napi::Error::New(env, "Send len error").ThrowAsJavaScriptException();
         return Napi::Number::New(env, -1);
     }
-    int t = ikcp_send(this->kcp, buff.Data(), len);
+    int t = ikcp_send(this->kcp.get(), buff.Data(), len);
     return Napi::Number::New(env, t);
 }
 
@@ -325,7 +328,7 @@ Napi::Value KcpObject::Update(const Napi::CallbackInfo &info)
     }
 
     IUINT32 current = info[0].As<Napi::Number>().Uint32Value();
-    ikcp_update(this->kcp, current);
+    ikcp_update(this->kcp.get(), current);
 
     return env.Undefined();
 }
@@ -341,20 +344,20 @@ Napi::Value KcpObject::Check(const Napi::CallbackInfo &info)
     }
 
     IUINT32 current = info[0].As<Napi::Number>().Uint32Value();
-    IUINT32 ret = ikcp_check(this->kcp, current) - current;
+    IUINT32 ret = ikcp_check(this->kcp.get(), current) - current;
     return Napi::Number::New(env, ret);
 }
 
 Napi::Value KcpObject::Flush(const Napi::CallbackInfo &info)
 {
-    ikcp_flush(this->kcp);
+    ikcp_flush(this->kcp.get());
     return info.Env().Undefined();
 }
 
 Napi::Value KcpObject::Peeksize(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
-    int ret = ikcp_peeksize(this->kcp);
+    int ret = ikcp_peeksize(this->kcp.get());
     return Napi::Number::New(env, ret);
 }
 
@@ -366,7 +369,7 @@ Napi::Value KcpObject::Setmtu(const Napi::CallbackInfo &info)
     {
         mtu = info[0].As<Napi::Number>().Int32Value();
     }
-    int ret = ikcp_setmtu(this->kcp, mtu);
+    int ret = ikcp_setmtu(this->kcp.get(), mtu);
     return Napi::Number::New(env, ret);
 }
 
@@ -383,14 +386,14 @@ Napi::Value KcpObject::Wndsize(const Napi::CallbackInfo &info)
     {
         rcvwnd = info[1].As<Napi::Number>().Int32Value();
     }
-    int ret = ikcp_wndsize(this->kcp, sndwnd, rcvwnd);
+    int ret = ikcp_wndsize(this->kcp.get(), sndwnd, rcvwnd);
     return Napi::Number::New(env, ret);
 }
 
 Napi::Value KcpObject::Waitsnd(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
-    int ret = ikcp_waitsnd(this->kcp);
+    int ret = ikcp_waitsnd(this->kcp.get());
     return Napi::Number::New(env, ret);
 }
 
@@ -417,7 +420,7 @@ Napi::Value KcpObject::Nodelay(const Napi::CallbackInfo &info)
     {
         nc = info[3].As<Napi::Number>().Int32Value();
     }
-    int ret = ikcp_nodelay(this->kcp, nodelay, interval, resend, nc);
+    int ret = ikcp_nodelay(this->kcp.get(), nodelay, interval, resend, nc);
     return Napi::Number::New(env, ret);
 }
 
