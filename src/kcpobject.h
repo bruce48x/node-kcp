@@ -4,6 +4,7 @@
 #define NAPI_VERSION 8
 #include <napi.h>
 #include "ikcp.h"
+#include "fec.h"
 
 class KcpObject : public Napi::ObjectWrap<KcpObject>
 {
@@ -37,6 +38,7 @@ private:
     Napi::ObjectReference context;
     char *recvBuff = NULL;
     unsigned int recvBuffSize = 1024;
+    FEC fec;
 };
 
 #endif

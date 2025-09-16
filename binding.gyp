@@ -12,7 +12,7 @@
                 "msvs_settings": {
                   "VCCLCompilerTool": {
                     "ExceptionHandling": 1,
-                    "AdditionalOptions": ["/utf-8"]
+                    "AdditionalOptions": [ "/utf-8" ]
                   },
                 },
               }],
@@ -25,27 +25,19 @@
               }],
             ],
             'include_dirs': [
-              "<!(node -p \"require('node-addon-api').include_dir\")",
-              "deps/libcorrect/include"
+              "<!(node -p \"require('node-addon-api').include_dir\")"
             ],
             "sources": [
               "src/ikcp.c",
               "src/kcpobject.cc",
               "src/node-kcp.cc",
-              "src/rs_wrapper.cc",
-              "deps/libcorrect/src/reed-solomon/encode.c",
-              "deps/libcorrect/src/reed-solomon/decode.c",
-              "deps/libcorrect/src/reed-solomon/polynomial.c",
-              "deps/libcorrect/src/reed-solomon/reed-solomon.c",
-              "deps/libcorrect/src/fec_shim.c",
-              "deps/libcorrect/src/convolutional/bit.c",
-              "deps/libcorrect/src/convolutional/convolutional.c",
-              "deps/libcorrect/src/convolutional/decode.c",
-              "deps/libcorrect/src/convolutional/encode.c",
-              "deps/libcorrect/src/convolutional/error_buffer.c",
-              "deps/libcorrect/src/convolutional/history_buffer.c",
-              "deps/libcorrect/src/convolutional/lookup.c",
-              "deps/libcorrect/src/convolutional/metric.c"
+              "src/reedsolomon.cpp",
+              "src/matrix.cpp",
+              "src/galois.cpp",
+              "src/galois_table.c",
+              "src/galois_noasm.cpp",
+              "src/fec.cpp",
+              "src/inversion_tree.cpp",
             ]
         }
     ]

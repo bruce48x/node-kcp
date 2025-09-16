@@ -67,6 +67,15 @@ KcpObject::KcpObject(const Napi::CallbackInfo &info)
         Napi::Error::New(env, "Memory allocation failed").ThrowAsJavaScriptException();
         return;
     }
+
+    // 判断是否有FEC参数
+    if (context.Value().Has("fec"))
+    {
+        Napi::Object fecOpts = context.Value().Get("fec").As<Napi::Object>();
+        auto dataShards = fecOpts.Get("dataShards").As<Napi::Number>().Int32Value();
+        auto parityShards = fecOpts.Get("parityShards").As<Napi::Number>().Int32Value();
+        fec = FEC::New(3 * (dataShards + parityShards), dataShards, parityShards);
+    }
 }
 
 KcpObject::~KcpObject()
