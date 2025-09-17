@@ -1,14 +1,14 @@
 const kcp = require('..');
 const Kcp = kcp.KCP;
 const dgram = require('dgram');
-const { log, address, port, conv } = require('./common');
+const { log, address, port, conv, fec } = require('./common');
 
 const kcpObj = new Kcp(conv, {
-    address, port, fec: {
-        dataShards: 4,
-        parityShards: 1,
-    }
+    address, port
 });
+if (fec && Object.keys(fec).length > 0) {
+    kcpObj.fec(fec.dataShards, fec.parityShards);
+}
 const client = dgram.createSocket('udp4');
 
 kcpObj.output((data, size, context) => {

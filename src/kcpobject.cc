@@ -22,7 +22,8 @@ Napi::Object KcpObject::Init(Napi::Env env, Napi::Object exports)
                      InstanceMethod("wndsize", &KcpObject::Wndsize),
                      InstanceMethod("waitsnd", &KcpObject::Waitsnd),
                      InstanceMethod("nodelay", &KcpObject::Nodelay),
-                     InstanceMethod("stream", &KcpObject::Stream)});
+                     InstanceMethod("stream", &KcpObject::Stream),
+                     InstanceMethod("fec", &KcpObject::Fec)});
 
     Napi::FunctionReference *constructor = new Napi::FunctionReference();
     *constructor = Napi::Persistent(func);
@@ -121,19 +122,6 @@ KcpObject::KcpObject(const Napi::CallbackInfo &info)
 
         // Initialize receive buffer with RAII
         recvBuffer.resize(recvBuffSize);
-
-        // 判断是否有FEC参数
-        if (!context.IsEmpty() && context.Value().Has("fec"))
-        {
-            Napi::Object fecOpts = context.Value().Get("fec").As<Napi::Object>();
-            dataShards = fecOpts.Get("dataShards").As<Napi::Number>().Uint32Value();
-            parityShards = fecOpts.Get("parityShards").As<Napi::Number>().Uint32Value();
-            fec = FEC::New(3 * (dataShards + parityShards), dataShards, parityShards);
-            shards.resize(dataShards + parityShards, nullptr);
-
-            // Initialize output buffer with RAII
-            outBuffer.resize((dataShards + parityShards) * 1024);
-        }
     }
     catch (const std::exception &e)
     {
@@ -432,6 +420,24 @@ Napi::Value KcpObject::Stream(const Napi::CallbackInfo &info)
         int stream = info[0].As<Napi::Number>().Int32Value();
         this->kcp->stream = stream;
         return Napi::Number::New(env, this->kcp->stream);
+    }
+    return env.Undefined();
+}
+
+Napi::Value KcpObject::Fec(const Napi::CallbackInfo &info)
+{
+    Napi::Env env = info.Env();
+    if (info[0].IsNumber() && info[1].IsNumber())
+    {
+        int dataShards = info[0].As<Napi::Number>().Int32Value();
+        int parityShards = info[1].As<Napi::Number>().Int32Value();
+        this->fec = FEC::New(3 * (dataShards + parityShards), dataShards, parityShards);
+        shards.resize(dataShards + parityShards, nullptr);
+        this->dataShards = dataShards;
+        this->parityShards = parityShards;
+        // Initialize output buffer with RAII
+        outBuffer.resize((dataShards + parityShards) * 1024);
+        return Napi::Number::New(env, this->fec.isEnabled());
     }
     return env.Undefined();
 }

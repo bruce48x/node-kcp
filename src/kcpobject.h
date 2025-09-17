@@ -31,6 +31,7 @@ private:
     Napi::Value Waitsnd(const Napi::CallbackInfo &info);
     Napi::Value Nodelay(const Napi::CallbackInfo &info);
     Napi::Value Stream(const Napi::CallbackInfo &info);
+    Napi::Value Fec(const Napi::CallbackInfo &info);
 
     static int kcp_output(const char *buf, int len, ikcpcb *kcp, void *user);
 

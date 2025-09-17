@@ -24,17 +24,8 @@ declare interface ISocket {
     remoteAddress ?: {ip: string , port ?: number};
 }
 
-export interface KcpOptions {
-    address?: string;
-    port?: number;
-    fec?: {
-        dataShards?: number;
-        parityShards?: number;
-    };
-}
-
 export class KCP {
-    constructor(conv: number, user: KcpOptions) 
+    constructor(conv: number, user: any) 
     wndsize(sndwnd: number, rcvwnd: number): void;
     setmtu(mtu: number): void;
     nodelay(nodelay: number, interval: number, resend: number, nc: number): void;
@@ -43,11 +34,12 @@ export class KCP {
     recv(): Buffer;
     input(pkg: Buffer): void;
     send(pkg: Buffer): void;
-    output(func: (data: any, size: number, opts: KcpOptions) => void): void;
+    output(func: (data: any, size: number, opts: any) => void): void;
     update(ts: number): void;
     check(ts: number): number;
     flush(): void;
     peeksize(): number;
     waitsnd(): number;
     stream(s: number): number;
+    fec(dataShards: number, parityShards: number): boolean;
 }

@@ -17,4 +17,8 @@ module.exports = {
     address: '127.0.0.1',
     port: 12345,
     conv: 255,
+    fec: {
+        dataShards: 4,
+        parityShards: 1,
+    }
 }
